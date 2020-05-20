@@ -234,7 +234,7 @@ esp_err_t sdspi_host_deinit()
             s_slots[i].block_buf = NULL;
             free(s_slots[i].transactions);
             s_slots[i].transactions = NULL;
-            spi_bus_free((spi_host_device_t) i);
+            // The bus is shared with other components, it's freed globally
             s_slots[i].handle = NULL;
         }
     }
@@ -267,27 +267,13 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
         return ESP_ERR_INVALID_ARG;
     }
 
-    spi_bus_config_t buscfg = {
-        .miso_io_num = slot_config->gpio_miso,
-        .mosi_io_num = slot_config->gpio_mosi,
-        .sclk_io_num = slot_config->gpio_sck,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1
-    };
-
-    // Initialize SPI bus
-    esp_err_t ret = spi_bus_initialize((spi_host_device_t)slot, &buscfg,
-            slot_config->dma_channel);
-    if (ret != ESP_OK) {
-        ESP_LOGD(TAG, "spi_bus_initialize failed with rc=0x%x", ret);
-        return ret;
-    }
+    // The SPI bus is shared with other components, it's allocated globally
 
     // Attach the SD card to the SPI bus
-    ret = init_spi_dev(slot, SDMMC_FREQ_PROBING * 1000);
+    esp_err_t ret = init_spi_dev(slot, SDMMC_FREQ_PROBING * 1000);
     if (ret != ESP_OK) {
         ESP_LOGD(TAG, "spi_bus_add_device failed with rc=0x%x", ret);
-        spi_bus_free(host);
+        // The bus is shared with other components, it's freed globally
         return ret;
     }
 
@@ -304,7 +290,7 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
         ESP_LOGD(TAG, "gpio_config (CS) failed with rc=0x%x", ret);
         spi_bus_remove_device(spi_handle(slot));
         s_slots[slot].handle = NULL;
-        spi_bus_free(host);
+        // The bus is shared with other components, it's freed globally
         return ret;
     }
     cs_high(slot);
@@ -336,7 +322,7 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
             ESP_LOGD(TAG, "gpio_config (CD/WP) failed with rc=0x%x", ret);
             spi_bus_remove_device(spi_handle(slot));
             s_slots[slot].handle = NULL;
-            spi_bus_free(host);
+            // The bus is shared with other components, it's freed globally
             return ret;
         }
     }
@@ -345,7 +331,7 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
     if (s_slots[slot].transactions == NULL) {
         spi_bus_remove_device(spi_handle(slot));
         s_slots[slot].handle = NULL;
-        spi_bus_free(host);
+        // The bus is shared with other components, it's freed globally
         return ESP_ERR_NO_MEM;
     }
 
