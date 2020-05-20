@@ -216,6 +216,8 @@ static void setFirstBreakpoint(uint32_t pc)
 static volatile XtExcFrame * other_core_frame = NULL;
 #endif //!CONFIG_FREERTOS_UNICORE
 
+extern void kernelPanicHandler(XtExcFrame *frame, int core_id);
+
 void panicHandler(XtExcFrame *frame)
 {
     int core_id = xPortGetCoreID();
@@ -381,7 +383,7 @@ static void illegal_instruction_helper(XtExcFrame *frame)
     panicPutStr("Memory dump at 0x");
     panicPutHex(epc);
     panicPutStr(": ");
-    
+
     panicPutHex(*pepc);
     panicPutStr(" ");
     panicPutHex(*(pepc + 1));
@@ -572,9 +574,12 @@ static __attribute__((noreturn)) void commonErrorHandler(XtExcFrame *frame)
     reconfigureAllWdts();
 
     commonErrorHandler_dump(frame, core_id);
+    kernelPanicHandler(frame, core_id);
+
 #if !CONFIG_FREERTOS_UNICORE
     if (other_core_frame != NULL) {
         commonErrorHandler_dump((XtExcFrame *)other_core_frame, (core_id ? 0 : 1));
+        kernelPanicHandler((XtExcFrame *)other_core_frame, (core_id ? 0 : 1));
     }
 #endif //!CONFIG_FREERTOS_UNICORE
 
