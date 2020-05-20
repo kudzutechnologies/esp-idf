@@ -665,7 +665,7 @@ def main():
 
     serial_instance = serial.serial_for_url(args.port, args.baud,
                                             do_not_open=True)
-    serial_instance.dtr = False
+    serial_instance.dtr = True
     serial_instance.rts = False
 
     args.elf_file.close()  # don't need this as a file
